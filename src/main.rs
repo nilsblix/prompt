@@ -209,26 +209,21 @@ impl fmt::Display for NotInNixShell {
 }
 
 fn get_nix_shell() -> Result<String, NotInNixShell> {
-    let in_classic = env::var("IN_NIX_SHELL").is_ok();
-    let in_modern = env::var("NIX_PROFILES").is_ok();
-
-    if !in_classic && !in_modern {
+    if env::var("IN_NIX_SHELL").is_err() && !env::var("NIX_PROFILES").is_ok() {
         return Err(NotInNixShell{});
     }
 
-    let flake = "*flake".to_string();
-    let flake = DecoratedString::new(flake).bold().colored(Color::Red).to_ansi();
+    let shell_type = if env::var("NIX_SHELL_SESSION_ID").is_ok() {
+        "nix develop"
+    } else if env::var("NIX_PROFILES").is_ok() {
+        "nix shell"
+    } else {
+        "nix-shell"
+    };
 
-    let shell_name: String = env::var("name")
-        .unwrap_or_else(|_| {
-            if in_classic {
-                "nix-shell".to_string()
-            } else {
-                "nix-shell ".to_string() + &flake
-            }
-        });
+    let shell_name = env::var("name").unwrap_or_else(|_| shell_type.to_string());
 
-    Ok(DecoratedString::new(format!("nix: {}", {shell_name}))
+    Ok(DecoratedString::new(format!("nix: {}", shell_name))
         .bold()
         .to_ansi())
 }
