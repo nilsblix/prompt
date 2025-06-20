@@ -279,7 +279,7 @@ fn main() {
         .map(|x| x.expect("Invalid Result"))
         .collect();
 
-    if Ok("1") == env::var("DEBUG_PROMPTLINE").as_ref().map(|s| s.as_str()) {
+    if Ok("1") == env::var("DEBUG_PROMPT").as_ref().map(|s| s.as_str()) {
         for error in errors.into_iter().map(|e| e.unwrap_err()) {
             eprintln!("{error}");
         }
