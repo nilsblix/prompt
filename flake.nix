@@ -14,9 +14,9 @@
                 };
             in {
                 devShells.default = pkgs.mkShell {
-                    packages = [
-                        pkgs.cargo
-                        pkgs.rustc
+                    packages = with pkgs; [
+                        cargo
+                        rustc
                     ];
                 };
 
@@ -27,6 +27,7 @@
                     cargoLock = {
                         lockFile = ./Cargo.lock;
                     };
+                    nativeBuildInputs = with pkgs; [ cargo rustc ];
                 };
             }
         );
