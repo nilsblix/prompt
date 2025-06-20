@@ -158,6 +158,7 @@ fn get_cwd() -> String  {
 
 #[derive(Debug)]
 enum ShellError {
+    ZeroNotSet,
     EnvNotSet,
     NoFileName,
 }
@@ -167,21 +168,28 @@ impl Error for ShellError {}
 impl fmt::Display for ShellError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ShellError::EnvNotSet => write!(f, "shell env not set"),
+            ShellError::ZeroNotSet => write!(f, "shell env ($0) not set"),
+            ShellError::EnvNotSet => write!(f, "shell env ($SHELL) not set"),
             ShellError::NoFileName => write!(f, "failed to get shell name"),
         }
     }
 }
 
 fn get_shell() -> Result<String, ShellError> {
-    let shell: std::path::PathBuf = env::var("SHELL")
-        .map_err(|_| ShellError::EnvNotSet)?
-        .into();
+    let shell_raw = env::var("0")
+        .ok()
+        .filter(|s| !s.trim().is_empty())
+        .ok_or(ShellError::ZeroNotSet)
+        .or_else(|_| {
+            env::var("SHELL").map_err(|_| ShellError::EnvNotSet)
+        })?;
 
-    let name = shell
+    let name = std::path::Path::new(&shell_raw)
         .file_name()
         .ok_or(ShellError::NoFileName)?
-        .to_string_lossy();
+        .to_string_lossy()
+        .trim_start_matches('-')
+        .to_string();
 
     Ok(DecoratedString::new(name.to_string())
         .bold()
@@ -201,9 +209,24 @@ impl fmt::Display for NotInNixShell {
 }
 
 fn get_nix_shell() -> Result<String, NotInNixShell> {
-    env::var("IN_NIX_SHELL").map_err(|_| NotInNixShell{})?;
+    let in_classic = env::var("IN_NIX_SHELL").is_ok();
+    let in_modern = env::var("NIX_PROFILES").is_ok();
 
-    let shell_name = std::env::var("name").unwrap_or("nix-shell".to_string());
+    if !in_classic && !in_modern {
+        return Err(NotInNixShell{});
+    }
+
+    let flake = "*flake".to_string();
+    let flake = DecoratedString::new(flake).bold().colored(Color::Red).to_ansi();
+
+    let shell_name: String = env::var("name")
+        .unwrap_or_else(|_| {
+            if in_classic {
+                "nix-shell".to_string()
+            } else {
+                "nix-shell ".to_string() + &flake
+            }
+        });
 
     Ok(DecoratedString::new(format!("nix: {}", {shell_name}))
         .bold()
