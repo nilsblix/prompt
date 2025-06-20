@@ -209,7 +209,7 @@ impl fmt::Display for NotInNixShell {
 }
 
 fn get_nix_shell() -> Result<String, NotInNixShell> {
-    if env::var("IN_NIX_SHELL").is_err() && !env::var("NIX_PROFILES").is_ok() {
+    if env::var("IN_NIX_SHELL").is_err() {
         return Err(NotInNixShell{});
     }
 
