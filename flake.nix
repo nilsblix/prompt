@@ -12,15 +12,7 @@
                 pkgs = import nixpkgs {
                     inherit system;
                 };
-            in {
-                devShells.default = pkgs.mkShell {
-                    packages = with pkgs; [
-                        cargo
-                        rustc
-                    ];
-                };
-
-                packages.default = pkgs.rustPlatform.buildRustPackage {
+                rustPkg = pkgs.rustPlatform.buildRustPackage {
                     pname = "prompt";
                     version = "0.1.0";
                     src = ./.;
@@ -29,6 +21,16 @@
                     };
                     nativeBuildInputs = with pkgs; [ cargo rustc ];
                 };
+            in {
+                devShells.default = pkgs.mkShell {
+                    packages = with pkgs; [
+                        cargo
+                        rustc
+                    ];
+                };
+
+                packages.default = rustPkg;
+                defaultPackage = rustPkg;
             }
         );
 }
