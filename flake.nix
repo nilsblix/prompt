@@ -16,6 +16,7 @@
                 devShells.default = pkgs.mkShell {
                     packages = [
                         pkgs.cargo
+                        pkgs.rustc
                     ];
                 };
 
