@@ -245,12 +245,9 @@ impl NixShellType {
 fn get_nix_shell() -> Result<String, NotInNixShell> {
     use NixShellType::{Impure, Pure, Unknown};
 
-    let shell_type = NixShellType::detect_shell_type();
-    if shell_type.is_err() {
-        return Err(NotInNixShell);
-    }
+    let shell_type = NixShellType::detect_shell_type()?;
 
-    let name = match shell_type.unwrap() {
+    let name = match shell_type {
         Pure => "pure",
         Impure => "impure",
         Unknown => "unknown",
