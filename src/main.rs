@@ -1,7 +1,7 @@
 use std::{
     env, 
     error::Error, 
-    fmt::{ self, Write, }, 
+    fmt::{ self, Write, },
 };
 
 #[allow(unused)]
@@ -198,7 +198,7 @@ fn get_shell() -> Result<String, ShellError> {
 }
 
 #[derive(Debug)]
-struct NotInNixShell{}
+struct NotInNixShell;
 
 impl Error for NotInNixShell {}
 
@@ -208,22 +208,55 @@ impl fmt::Display for NotInNixShell {
    }
 }
 
+// https://github.com/starship/starship/blob/master/src/modules/nix_shell.rs
+enum NixShellType {
+    Pure,
+    Impure,
+    /// We're in a Nix shell, but we don't know which type.
+    /// This can only happen in a `nix shell` shell (not a `nix-shell` one).
+    Unknown,
+}
+
+impl NixShellType {
+    fn detect_shell_type() -> Result<Self, NotInNixShell> {
+        use NixShellType::{Impure, Pure, Unknown};
+
+        let shell_type = env::var("IN_NIX_SHELL");
+        match shell_type {
+            Ok(val) if val == "pure" => return Ok(Pure),
+            Ok(val) if val == "impure" => return Ok(Impure),
+            Ok(_) => return Ok(Unknown),
+            _ => {},
+        }
+
+        // Hack to detect if we're in a `nix shell`
+        let path = env::var("PATH").map_err(|_| NotInNixShell)?;
+        let in_nix_shell = env::split_paths(&path)
+            .any(|p: std::path::PathBuf| p.starts_with("/nix/store"));
+
+        if in_nix_shell {
+            Ok(Unknown)
+        } else {
+            Err(NotInNixShell)
+        }
+    }
+}
+
 fn get_nix_shell() -> Result<String, NotInNixShell> {
-    if env::var("IN_NIX_SHELL").is_err() {
-        return Err(NotInNixShell{});
+    use NixShellType::{Impure, Pure, Unknown};
+
+    let shell_type = NixShellType::detect_shell_type();
+    if shell_type.is_err() {
+        return Err(NotInNixShell);
     }
 
-    let shell_type = if env::var("NIX_SHELL_SESSION_ID").is_ok() {
-        "nix develop"
-    } else if env::var("NIX_PROFILES").is_ok() {
-        "nix shell"
-    } else {
-        "nix-shell"
+    let name = match shell_type.unwrap() {
+        Pure => "pure",
+        Impure => "impure",
+        Unknown => "unknown",
     };
 
-    let shell_name = env::var("name").unwrap_or_else(|_| shell_type.to_string());
-
-    Ok(DecoratedString::new(format!("nix: {}", shell_name))
+    Ok(DecoratedString::new(format!("nix: {}", name))
         .bold()
         .to_ansi())
 }
