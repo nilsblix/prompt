@@ -156,11 +156,76 @@ fn get_cwd() -> String  {
         .to_ansi()
 }
 
+// #[derive(Debug)]
+// enum ShellError {
+//     PsCommandFailed,
+//     PsCommandTerminationUnsuccessful,
+//     StdoutToStringFailed,
+//     ParentPidParseFailed,
+//     ShellNameParseFailed,
+// }
+//
+// impl fmt::Display for ShellError {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         write!(f, "{:?}", self)
+//     }
+// }
+//
+// impl Error for ShellError {}
+//
+// fn get_shell() -> Result<String, ShellError> {
+//     // Get parent PID of the current shell process
+//     let ppid_output = std::process::Command::new("sh")
+//         .arg("-c")
+//         .arg("ps -o ppid= -p $$")
+//         .output()
+//         .map_err(|_| ShellError::PsCommandFailed)?;
+//
+//     if !ppid_output.status.success() {
+//         return Err(ShellError::PsCommandTerminationUnsuccessful);
+//     }
+//
+//     let ppid = String::from_utf8(ppid_output.stdout)
+//         .map_err(|_| ShellError::StdoutToStringFailed)?
+//         .trim()
+//         .parse::<u32>()
+//         .map_err(|_| ShellError::ParentPidParseFailed)?;
+//
+//     // Get command name of the parent PID
+//     let shell_output = std::process::Command::new("ps")
+//         .arg("-p")
+//         .arg(ppid.to_string())
+//         .arg("-o")
+//         .arg("comm=")
+//         .output()
+//         .map_err(|_| ShellError::PsCommandFailed)?;
+//
+//     if !shell_output.status.success() {
+//         return Err(ShellError::PsCommandTerminationUnsuccessful);
+//     }
+//
+//     let shell = String::from_utf8(shell_output.stdout)
+//         .map_err(|_| ShellError::StdoutToStringFailed)?
+//         .trim()
+//         .to_string();
+//
+//     if shell.is_empty() {
+//         return Err(ShellError::ShellNameParseFailed);
+//     }
+//
+//     // Ok(shell)
+//
+//     Ok(DecoratedString::new(shell)
+//         .bold()
+//         .colored(Color::White)
+//         .to_ansi())
+// }
+
 #[derive(Debug)]
 enum ShellError {
-    ZeroNotSet,
-    EnvNotSet,
-    NoFileName,
+    PsCommandFailed,
+    PsCommandTerminationUnsuccessful,
+    StdoutToStringFailed,
 }
 
 impl Error for ShellError {}
@@ -168,30 +233,36 @@ impl Error for ShellError {}
 impl fmt::Display for ShellError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ShellError::ZeroNotSet => write!(f, "shell env ($0) not set"),
-            ShellError::EnvNotSet => write!(f, "shell env ($SHELL) not set"),
-            ShellError::NoFileName => write!(f, "failed to get shell name"),
+            Self::PsCommandFailed => write!(f, "the command: `ps -p $$ -o comm=` has failed"),
+            Self::PsCommandTerminationUnsuccessful => write!(f, "the command: `ps -p $$ -o comm=` was unsuccessful"),
+            Self::StdoutToStringFailed => write!(f, "stdout to string failed"),
         }
     }
 }
 
 fn get_shell() -> Result<String, ShellError> {
-    let shell_raw = env::var("0")
-        .ok()
-        .filter(|s| !s.trim().is_empty())
-        .ok_or(ShellError::ZeroNotSet)
-        .or_else(|_| {
-            env::var("SHELL").map_err(|_| ShellError::EnvNotSet)
-        })?;
+    use std::process::Command;
 
-    let name = std::path::Path::new(&shell_raw)
-        .file_name()
-        .ok_or(ShellError::NoFileName)?
-        .to_string_lossy()
-        .trim_start_matches('-')
+    // This spawns a new shell, so to look for the current shell type we need to go two layers up:
+    // 1 User shell session
+    // 2 prompt session
+    // 3 spawned sh to determine shell type of session 1
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg("ps -p $(ps -o ppid= -p $(ps -o ppid= -p $$)) -o comm=")
+        .output()
+        .map_err(|_| ShellError::PsCommandFailed)?;
+
+    if !output.status.success() {
+        return Err(ShellError::PsCommandTerminationUnsuccessful);
+    }
+
+    let string = String::from_utf8(output.stdout)
+        .map_err(|_| ShellError::StdoutToStringFailed)?
+        .trim()
         .to_string();
 
-    Ok(DecoratedString::new(name.to_string())
+    Ok(DecoratedString::new(string)
         .bold()
         .colored(Color::White)
         .to_ansi())
