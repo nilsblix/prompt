@@ -152,74 +152,9 @@ fn get_cwd() -> String  {
 
     DecoratedString::new(cwd)
         .bold()
-        .colored(Color::Cyan)
+        .colored(Color::Blue)
         .to_ansi()
 }
-
-// #[derive(Debug)]
-// enum ShellError {
-//     PsCommandFailed,
-//     PsCommandTerminationUnsuccessful,
-//     StdoutToStringFailed,
-//     ParentPidParseFailed,
-//     ShellNameParseFailed,
-// }
-//
-// impl fmt::Display for ShellError {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write!(f, "{:?}", self)
-//     }
-// }
-//
-// impl Error for ShellError {}
-//
-// fn get_shell() -> Result<String, ShellError> {
-//     // Get parent PID of the current shell process
-//     let ppid_output = std::process::Command::new("sh")
-//         .arg("-c")
-//         .arg("ps -o ppid= -p $$")
-//         .output()
-//         .map_err(|_| ShellError::PsCommandFailed)?;
-//
-//     if !ppid_output.status.success() {
-//         return Err(ShellError::PsCommandTerminationUnsuccessful);
-//     }
-//
-//     let ppid = String::from_utf8(ppid_output.stdout)
-//         .map_err(|_| ShellError::StdoutToStringFailed)?
-//         .trim()
-//         .parse::<u32>()
-//         .map_err(|_| ShellError::ParentPidParseFailed)?;
-//
-//     // Get command name of the parent PID
-//     let shell_output = std::process::Command::new("ps")
-//         .arg("-p")
-//         .arg(ppid.to_string())
-//         .arg("-o")
-//         .arg("comm=")
-//         .output()
-//         .map_err(|_| ShellError::PsCommandFailed)?;
-//
-//     if !shell_output.status.success() {
-//         return Err(ShellError::PsCommandTerminationUnsuccessful);
-//     }
-//
-//     let shell = String::from_utf8(shell_output.stdout)
-//         .map_err(|_| ShellError::StdoutToStringFailed)?
-//         .trim()
-//         .to_string();
-//
-//     if shell.is_empty() {
-//         return Err(ShellError::ShellNameParseFailed);
-//     }
-//
-//     // Ok(shell)
-//
-//     Ok(DecoratedString::new(shell)
-//         .bold()
-//         .colored(Color::White)
-//         .to_ansi())
-// }
 
 #[derive(Debug)]
 enum ShellError {
@@ -265,6 +200,36 @@ fn get_shell() -> Result<String, ShellError> {
     Ok(DecoratedString::new(string)
         .bold()
         .colored(Color::White)
+        .to_ansi())
+}
+
+#[derive(Debug)]
+enum StatusError {
+    NoExitCode,
+    CodeNotANumber
+}
+
+impl Error for StatusError {}
+
+impl fmt::Display for StatusError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::NoExitCode => write!(f, "no status/exit-code was found"),
+            Self::CodeNotANumber => write!(f, "a non-number exit code was returned"),
+        }
+    }
+}
+
+fn get_exit_code() -> Result<String, StatusError> {
+    let code = env::var("PROMPT_LAST_STATUS").map_err(|_| StatusError::NoExitCode)?;
+
+    let val = code.parse::<i32>().map_err(|_| StatusError::CodeNotANumber)?;
+    Ok(DecoratedString::new(code)
+        .bold()
+        .colored(match val {
+            0 => Color::Green,
+            _ => Color::Red,
+        })
         .to_ansi())
 }
 
@@ -334,6 +299,7 @@ enum MainError {
     User(UserError),
     Hostname(HostnameError),
     Shell(ShellError),
+    Status(StatusError),
     NixShell(NotInNixShell),
 }
 
@@ -350,6 +316,10 @@ impl fmt::Display for MainError {
             },
             MainError::Shell(e) => {
                 writeln!(f, "failed to get shell info")?;
+                e
+            },
+            MainError::Status(e) => {
+                writeln!(f, "failed to get status")?;
                 e
             },
             MainError::NixShell(e) => {
@@ -382,12 +352,27 @@ fn do_print(mut components: Vec<String>) {
 }
 
 fn main() {
+    // This program uses these environment variables:
+    //
+    // 1. `DEBUG_PROMPT`: 
+    //      1 => Print out debug stats
+    //      0 => No debug
+    // 2. `PROMPT_LAST_STATUS`:
+    //      Set to `$?` for an accurate last status.
+    //      Doesn't have to be set if no exit status is wanted
+    //
+    // Here is how to setup the prompt for zsh:
+    // ```.zshrc
+    // PROMPT=PROMPT_LAST_STATUS=$? ./path/to/prompt/binary
+    // ```
+
     let (oks, errors): (Vec<Result<_, MainError>>, Vec<_>) = vec![
         Ok(get_time()),
         get_user().map_err(MainError::User),
         get_hostname().map_err(MainError::Hostname),
         Ok(get_cwd()),
         get_shell().map_err(MainError::Shell),
+        get_exit_code().map_err(MainError::Status),
         get_nix_shell().map_err(MainError::NixShell),
     ]
     .into_iter()
