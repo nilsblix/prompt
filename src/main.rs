@@ -363,7 +363,7 @@ fn main() {
     //
     // Here is how to setup the prompt for zsh:
     // ```.zshrc
-    // PROMPT=PROMPT_LAST_STATUS=$? ./path/to/prompt/binary
+    // PROMPT="$(PROMPT_LAST_STATUS=$? ./path/to/prompt/binary))"
     // ```
 
     let (oks, errors): (Vec<Result<_, MainError>>, Vec<_>) = vec![
