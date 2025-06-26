@@ -13,7 +13,7 @@
             in {
                 devShells.default = pkgs.mkShell {
                     packages = with pkgs; [
-                        cargo rustc
+                        cargo rustc rust-analyzer
                     ];
                 };
 
