@@ -378,11 +378,11 @@ fn main() {
     // ```
 
     let (oks, errors): (Vec<Result<_, MainError>>, Vec<_>) = vec![
-        // Ok(get_time()),
+        Ok(get_time()),
         get_user().map_err(MainError::User),
         get_hostname().map_err(MainError::Hostname),
         Ok(get_cwd()),
-        // get_shell().map_err(MainError::Shell),
+        get_shell().map_err(MainError::Shell),
         get_exit_code().map_err(MainError::Status),
         get_nix_shell().map_err(MainError::NixShell),
     ]
