@@ -352,7 +352,7 @@ fn do_print(mut components: Vec<String>) {
     }
     components.push("] -> ".into());
     for component in components {
-        print!("{component}");
+        print!("{component}\x1b[0m");
     }
 
     // Multiple lines:
