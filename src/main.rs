@@ -342,24 +342,24 @@ impl fmt::Display for MainError {
 
 fn do_print(mut components: Vec<String>) {
     // One line:
-    components.insert(0, "[".into());
-    for i in 1..components.len() - 1 {
-        components.insert(2 * i, "]-[".into());
-    }
-    components.push("] -> ".into());
-    for component in components {
-        print!("{component}");
-    }
-
-    // Multiple lines:
-    // components.insert(0, "┌[".into());
+    // components.insert(0, "[".into());
     // for i in 1..components.len() - 1 {
     //     components.insert(2 * i, "]-[".into());
     // }
-    // components.push("]\n└> ".into());
+    // components.push("]\n -> ".into());
     // for component in components {
     //     print!("{component}");
     // }
+
+    // Multiple lines:
+    components.insert(0, "┌[".into());
+    for i in 1..components.len() - 1 {
+        components.insert(2 * i, "]-[".into());
+    }
+    components.push("]\n└> ".into());
+    for component in components {
+        print!("{component}");
+    }
 }
 
 fn main() {
@@ -378,11 +378,11 @@ fn main() {
     // ```
 
     let (oks, errors): (Vec<Result<_, MainError>>, Vec<_>) = vec![
-        // Ok(get_time()),
+        Ok(get_time()),
         get_user().map_err(MainError::User),
         get_hostname().map_err(MainError::Hostname),
         Ok(get_cwd()),
-        // get_shell().map_err(MainError::Shell),
+        get_shell().map_err(MainError::Shell),
         get_exit_code().map_err(MainError::Status),
         get_nix_shell().map_err(MainError::NixShell),
     ]
