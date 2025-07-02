@@ -60,6 +60,10 @@ impl DecoratedString {
     fn to_ansi(&self) -> String {
         let mut ret = String::new();
         Self::append_to_ansi(self, &mut ret).unwrap();
+        // Ensure that the string leaves clean.
+        if !ret.ends_with("\x1b[0m") {
+            ret.push_str("\x1b[0m");
+        }
         ret
     }
 
@@ -341,14 +345,23 @@ impl fmt::Display for MainError {
 }
 
 fn do_print(mut components: Vec<String>) {
-    components.insert(0, "┌[".into());
+    components.insert(0, "[".into());
     for i in 1..components.len() - 1 {
         components.insert(2 * i, "]-[".into());
     }
-    components.push("]\n└> ".into());
+    components.push("] -> ".into());
     for component in components {
         print!("{component}");
     }
+
+    // components.insert(0, "┌[".into());
+    // for i in 1..components.len() - 1 {
+    //     components.insert(2 * i, "]-[".into());
+    // }
+    // components.push("]\n└> ".into());
+    // for component in components {
+    //     print!("{component}");
+    // }
 }
 
 fn main() {
