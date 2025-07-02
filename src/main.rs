@@ -76,7 +76,6 @@ impl DecoratedString {
     }
 }
 
-#[allow(dead_code)]
 fn get_time() -> String {
     let time = format!("{}", chrono::Local::now().time().format("%H:%M"));
     DecoratedString::new(time)
@@ -158,7 +157,6 @@ fn get_cwd() -> String  {
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
 enum ShellError {
     PsCommandFailed,
     PsCommandTerminationUnsuccessful,
@@ -177,7 +175,6 @@ impl fmt::Display for ShellError {
     }
 }
 
-#[allow(dead_code)]
 fn get_shell() -> Result<String, ShellError> {
     use std::process::Command;
 
@@ -298,7 +295,6 @@ fn get_nix_shell() -> Result<String, NotInNixShell> {
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
 enum MainError {
     User(UserError),
     Hostname(HostnameError),
@@ -358,7 +354,7 @@ fn do_print(mut components: Vec<String>) {
 fn main() {
     // This program uses these environment variables:
     //
-    // 1. `DEBUG_PROMPT`:
+    // 1. `DEBUG_PROMPT`: 
     //      1 => Print out debug stats
     //      0 => No debug
     // 2. `PROMPT_LAST_STATUS`:
