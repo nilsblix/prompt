@@ -76,6 +76,7 @@ impl DecoratedString {
     }
 }
 
+#[allow(dead_code)]
 fn get_time() -> String {
     let time = format!("{}", chrono::Local::now().time().format("%H:%M"));
     DecoratedString::new(time)
@@ -157,6 +158,7 @@ fn get_cwd() -> String  {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 enum ShellError {
     PsCommandFailed,
     PsCommandTerminationUnsuccessful,
@@ -175,6 +177,7 @@ impl fmt::Display for ShellError {
     }
 }
 
+#[allow(dead_code)]
 fn get_shell() -> Result<String, ShellError> {
     use std::process::Command;
 
@@ -295,6 +298,7 @@ fn get_nix_shell() -> Result<String, NotInNixShell> {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 enum MainError {
     User(UserError),
     Hostname(HostnameError),
@@ -346,7 +350,7 @@ fn do_print(mut components: Vec<String>) {
     for i in 1..components.len() - 1 {
         components.insert(2 * i, "]-[".into());
     }
-    components.push("]-> ".into());
+    components.push("] -> ".into());
     for component in components {
         print!("{component}");
     }
@@ -378,11 +382,11 @@ fn main() {
     // ```
 
     let (oks, errors): (Vec<Result<_, MainError>>, Vec<_>) = vec![
-        Ok(get_time()),
+        // Ok(get_time()),
         get_user().map_err(MainError::User),
         get_hostname().map_err(MainError::Hostname),
         Ok(get_cwd()),
-        get_shell().map_err(MainError::Shell),
+        // get_shell().map_err(MainError::Shell),
         get_exit_code().map_err(MainError::Status),
         get_nix_shell().map_err(MainError::NixShell),
     ]
