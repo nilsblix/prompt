@@ -60,10 +60,6 @@ impl DecoratedString {
     fn to_ansi(&self) -> String {
         let mut ret = String::new();
         Self::append_to_ansi(self, &mut ret).unwrap();
-        // Ensure that the string leaves clean.
-        if !ret.ends_with("\x1b[0m") {
-            ret.push_str("\x1b[0m");
-        }
         ret
     }
 
@@ -261,53 +257,24 @@ impl NixShellType {
     fn detect_shell_type() -> Result<Self, NotInNixShell> {
         use NixShellType::{Impure, Pure, Unknown};
 
-        // Check IN_NIX_SHELL first
-        if let Ok(val) = env::var("IN_NIX_SHELL") {
-            return match val.as_str() {
-                "pure" => Ok(Pure),
-                "impure" => Ok(Impure),
-                _ => Ok(Unknown), // Any other value means we're in some kind of nix shell
-            };
+        let shell_type = env::var("IN_NIX_SHELL");
+        match shell_type {
+            Ok(val) if val == "pure" => return Ok(Pure),
+            Ok(val) if val == "impure" => return Ok(Impure),
+            Ok(_) => return Ok(Unknown),
+            _ => {},
         }
 
-        // Check for other nix-related environment variables
-        if env::var("NIX_BUILD_TOP").is_ok() || 
-            env::var("NIX_STORE").is_ok() ||
-                env::var("__NIXOS_SET_ENVIRONMENT_DONE").is_ok() {
-                    return Ok(Unknown);
-        }
-
-        // Fallback: check PATH for nix store entries
+        // Hack to detect if we're in a `nix shell`
         let path = env::var("PATH").map_err(|_| NotInNixShell)?;
         let in_nix_shell = env::split_paths(&path)
-            .any(|p| p.starts_with("/nix/store"));
+            .any(|p: std::path::PathBuf| p.starts_with("/nix/store"));
 
         if in_nix_shell {
             Ok(Unknown)
         } else {
             Err(NotInNixShell)
         }
-
-        // use NixShellType::{Impure, Pure, Unknown};
-
-        // let shell_type = env::var("IN_NIX_SHELL");
-        // match shell_type {
-        //     Ok(val) if val == "pure" => return Ok(Pure),
-        //     Ok(val) if val == "impure" => return Ok(Impure),
-        //     Ok(_) => return Ok(Unknown),
-        //     _ => {},
-        // }
-
-        // // Hack to detect if we're in a `nix shell`
-        // let path = env::var("PATH").map_err(|_| NotInNixShell)?;
-        // let in_nix_shell = env::split_paths(&path)
-        //     .any(|p: std::path::PathBuf| p.starts_with("/nix/store"));
-
-        // if in_nix_shell {
-        //     Ok(Unknown)
-        // } else {
-        //     Err(NotInNixShell)
-        // }
     }
 }
 
@@ -374,23 +341,14 @@ impl fmt::Display for MainError {
 }
 
 fn do_print(mut components: Vec<String>) {
-    components.insert(0, "[".into());
+    components.insert(0, "┌[".into());
     for i in 1..components.len() - 1 {
         components.insert(2 * i, "]-[".into());
     }
-    components.push("] -> ".into());
+    components.push("]\n└> ".into());
     for component in components {
         print!("{component}");
     }
-
-    // components.insert(0, "┌[".into());
-    // for i in 1..components.len() - 1 {
-    //     components.insert(2 * i, "]-[".into());
-    // }
-    // components.push("]\n└> ".into());
-    // for component in components {
-    //     print!("{component}");
-    // }
 }
 
 fn main() {
