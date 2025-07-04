@@ -340,15 +340,28 @@ impl fmt::Display for MainError {
     }
 }
 
+// fn do_print(mut components: Vec<String>) {
+//     components.insert(0, "┌[".into());
+//     for i in 1..components.len() - 1 {
+//         components.insert(2 * i, "]-[".into());
+//     }
+//     components.push("]\n└> ".into());
+//     for component in components {
+//         print!("{component}");
+//     }
+// }
+
 fn do_print(mut components: Vec<String>) {
-    components.insert(0, "┌[".into());
+    components.insert(0, "[".into());
     for i in 1..components.len() - 1 {
         components.insert(2 * i, "]-[".into());
     }
-    components.push("]\n└> ".into());
+    components.push("] -> ".into());
     for component in components {
         print!("{component}");
     }
+    // Ensure all ANSI formatting is completely reset before the cursor position
+    print!("\x1b[0m");
 }
 
 fn main() {
