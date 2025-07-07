@@ -6,78 +6,6 @@ use std::{
 
 use colored::*;
 
-// #[allow(unused)]
-// enum Color {
-//     Red,
-//     Green,
-//     Yellow,
-//     Blue,
-//     Magenta,
-//     Cyan,
-//     White,
-// }
-//
-// impl Color {
-//     fn to_ansi(&self) -> i32 {
-//         match self {
-//             Color::Red => 31,
-//             Color::Green => 32,
-//             Color::Yellow => 33,
-//             Color::Blue => 34,
-//             Color::Magenta => 35,
-//             Color::Cyan => 36,
-//             Color::White => 37,
-//         }
-//     }
-// }
-//
-// enum DecoratedString {
-//     Bold(Box<DecoratedString>),
-//     Colored(Box<DecoratedString>, Color),
-//     Default(String),
-// }
-//
-// impl DecoratedString {
-//     fn append_to_ansi(val: &DecoratedString, s: &mut String) -> Result<(), fmt::Error> {
-//         // https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
-//         match val {
-//             DecoratedString::Bold(inner) => {
-//                 write!(s, "\x1b[1m")?;
-//                 Self::append_to_ansi(inner, s)?;
-//                 write!(s, "\x1b[22m")?;
-//             }
-//             DecoratedString::Colored(inner, color) => {
-//                 write!(s, "\x1b[{}m", color.to_ansi())?;
-//                 Self::append_to_ansi(inner, s)?;
-//                 write!(s, "\x1b[39m")?;
-//             }
-//             DecoratedString::Default(val) => {
-//                 write!(s, "{val}")?;
-//             }
-//         }
-//
-//         Ok(())
-//     }
-//
-//     fn to_ansi(&self) -> String {
-//         let mut ret = String::new();
-//         Self::append_to_ansi(self, &mut ret).unwrap();
-//         ret
-//     }
-//
-//     fn bold(self) -> DecoratedString {
-//         DecoratedString::Bold(Box::new(self))
-//     }
-//
-//     fn colored(self, color: Color) -> DecoratedString {
-//         DecoratedString::Colored(Box::new(self), color)
-//     }
-//
-//     fn new(s: String) -> DecoratedString {
-//         DecoratedString::Default(s)
-//     }
-// }
-
 #[derive(Debug)]
 enum UserError {
     NoUser(std::io::Error),
@@ -141,8 +69,7 @@ struct NotInNixShell;
 
 impl Error for NotInNixShell {}
 
-impl fmt::Display for NotInNixShell {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl fmt::Display for NotInNixShell { fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "not in a nix shell")
    }
 }
@@ -243,6 +170,8 @@ fn do_print(mut components: Vec<String>) {
 }
 
 fn main() {
+    colored::control::set_override(true);
+
     let (oks, errors): (Vec<Result<_, MainError>>, Vec<_>) = vec![
         get_user().map_err(MainError::User),
         get_hostname().map_err(MainError::Hostname),
