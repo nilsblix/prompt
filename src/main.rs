@@ -6,6 +6,10 @@ use std::{
 
 use colored::*;
 
+fn shell_escape(s: &str) -> String {
+    format!("\\[{}\\]", s)
+}
+
 #[derive(Debug)]
 enum UserError {
     NoUser(std::io::Error),
@@ -23,7 +27,8 @@ impl fmt::Display for UserError {
 
 fn get_user() -> Result<String, UserError> {
     let user = whoami::fallible::username().map_err(UserError::NoUser)?;
-    Ok(user.magenta().bold().to_string())
+    let col = user.magenta().bold().to_string();
+    Ok(shell_escape(&col))
 }
 
 #[derive(Debug)]
@@ -43,7 +48,8 @@ impl fmt::Display for HostnameError {
 
 fn get_hostname() -> Result<String, HostnameError> {
     let host = whoami::fallible::hostname().map_err(HostnameError::NoHost)?;
-    Ok(host.bold().green().to_string())
+    let col = host.bold().green().to_string();
+    Ok(shell_escape(&col))
 }
 
 fn get_cwd() -> String  {
@@ -61,7 +67,8 @@ fn get_cwd() -> String  {
         }
     }
 
-    cwd.bold().blue().to_string()
+    let col = cwd.bold().blue().to_string();
+    shell_escape(&col)
 }
 
 #[derive(Debug)]
@@ -119,7 +126,8 @@ fn get_nix_shell() -> Result<String, NotInNixShell> {
         Unknown => "unknown",
     };
 
-    Ok(format!("nix: {}", name).white().bold().to_string())
+    let col = format!("nix: {}", name).white().bold().to_string();
+    Ok(shell_escape(&col))
 }
 
 #[derive(Debug)]
