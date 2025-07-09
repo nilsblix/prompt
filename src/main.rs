@@ -180,15 +180,11 @@ impl fmt::Display for MainError {
     }
 }
 
-fn do_print(mut components: Vec<String>) {
-    components.insert(0, "[".into());
-    for i in 1..components.len() - 1 {
-        components.insert(2 * i, "]-[".into());
-    }
-    components.push("] -> ".into());
-    for component in components {
-        print!("{component}");
-    }
+fn do_print(components: Vec<String>) {
+    let mut out = String::from("[");
+    out += &components.join("]-[");
+    out += "] -> ";
+    print!("{out}");
 }
 
 fn main() {
