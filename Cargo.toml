@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 chrono = "0.4.41"
+nu-ansi-term = "0.50.1"
 whoami = "1.6.0"
