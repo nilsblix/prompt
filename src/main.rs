@@ -151,7 +151,8 @@ fn get_cwd() -> String  {
         }
     }
 
-    format!("\x1b[1m{}\x1b[0m", cwd)
+    cwd
+    // format!("\x1b[1m{}\x1b[0m", cwd)
     // DecoratedString::new(cwd)
     //     .bold()
     //     .colored(Color::Blue)
@@ -291,7 +292,8 @@ fn get_nix_shell() -> Result<String, NotInNixShell> {
         Unknown => "unknown",
     };
 
-    Ok(format!("nix: \x1b[1m{}\x1b[0m", name))
+    // Ok(format!("nix: \x1b[1m{}\x1b[0m", name))
+    Ok(format!("nix: {}", name))
     // Ok(DecoratedString::new(format!("nix: {}", name))
     //     .bold()
     //     .to_ansi())
