@@ -5,8 +5,9 @@ use std::{
 };
 
 #[allow(unused)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Color {
+    // Traditional ANSI colors
     Red,
     Green,
     Yellow,
@@ -14,29 +15,119 @@ enum Color {
     Magenta,
     Cyan,
     White,
+    Black,
+    BrightRed,
+    BrightGreen,
+    BrightYellow,
+    BrightBlue,
+    BrightMagenta,
+    BrightCyan,
+    BrightWhite,
+    BrightBlack,
+    // RGB color support
+    Rgb(u8, u8, u8),
+    // Hex color support (converted to RGB internally)
+    Hex(String),
 }
 
+#[allow(unused)]
 impl Color {
-    fn to_ansi(&self) -> i32 {
+    fn to_ansi(&self) -> String {
         match self {
-            Color::Red => 31,
-            Color::Green => 32,
-            Color::Yellow => 33,
-            Color::Blue => 34,
-            Color::Magenta => 35,
-            Color::Cyan => 36,
-            Color::White => 37,
+            // Standard ANSI colors (30-37)
+            Color::Black => "30".to_string(),
+            Color::Red => "31".to_string(),
+            Color::Green => "32".to_string(),
+            Color::Yellow => "33".to_string(),
+            Color::Blue => "34".to_string(),
+            Color::Magenta => "35".to_string(),
+            Color::Cyan => "36".to_string(),
+            Color::White => "37".to_string(),
+            // Bright ANSI colors (90-97)
+            Color::BrightBlack => "90".to_string(),
+            Color::BrightRed => "91".to_string(),
+            Color::BrightGreen => "92".to_string(),
+            Color::BrightYellow => "93".to_string(),
+            Color::BrightBlue => "94".to_string(),
+            Color::BrightMagenta => "95".to_string(),
+            Color::BrightCyan => "96".to_string(),
+            Color::BrightWhite => "97".to_string(),
+            // RGB colors using 24-bit true color
+            Color::Rgb(r, g, b) => format!("38;2;{};{};{}", r, g, b),
+            // Hex colors converted to RGB
+            Color::Hex(hex) => {
+                let (r, g, b) = Self::hex_to_rgb(hex);
+                format!("38;2;{};{};{}", r, g, b)
+            }
         }
+    }
+
+    fn to_ansi_bg(&self) -> String {
+        match self {
+            // Standard ANSI background colors (40-47)
+            Color::Black => "40".to_string(),
+            Color::Red => "41".to_string(),
+            Color::Green => "42".to_string(),
+            Color::Yellow => "43".to_string(),
+            Color::Blue => "44".to_string(),
+            Color::Magenta => "45".to_string(),
+            Color::Cyan => "46".to_string(),
+            Color::White => "47".to_string(),
+            // Bright ANSI background colors (100-107)
+            Color::BrightBlack => "100".to_string(),
+            Color::BrightRed => "101".to_string(),
+            Color::BrightGreen => "102".to_string(),
+            Color::BrightYellow => "103".to_string(),
+            Color::BrightBlue => "104".to_string(),
+            Color::BrightMagenta => "105".to_string(),
+            Color::BrightCyan => "106".to_string(),
+            Color::BrightWhite => "107".to_string(),
+            // RGB background colors using 24-bit true color
+            Color::Rgb(r, g, b) => format!("48;2;{};{};{}", r, g, b),
+            // Hex background colors converted to RGB
+            Color::Hex(hex) => {
+                let (r, g, b) = Self::hex_to_rgb(hex);
+                format!("48;2;{};{};{}", r, g, b)
+            }
+        }
+    }
+
+    fn hex_to_rgb(hex: &str) -> (u8, u8, u8) {
+        let hex = hex.trim_start_matches('#');
+        if hex.len() != 6 {
+            // Default to white if invalid hex
+            return (255, 255, 255);
+        }
+
+        let r = u8::from_str_radix(&hex[0..2], 16).unwrap_or(255);
+        let g = u8::from_str_radix(&hex[2..4], 16).unwrap_or(255);
+        let b = u8::from_str_radix(&hex[4..6], 16).unwrap_or(255);
+
+        (r, g, b)
+    }
+
+    // Convenience constructors
+    pub fn rgb(r: u8, g: u8, b: u8) -> Self {
+        Color::Rgb(r, g, b)
+    }
+
+    pub fn hex(hex: &str) -> Self {
+        Color::Hex(hex.to_string())
     }
 }
 
+#[allow(unused)]
 #[derive(Debug)]
 enum DecoratedString {
     Bold(Box<DecoratedString>),
     Colored(Box<DecoratedString>, Color),
+    Background(Box<DecoratedString>, Color),
+    Underlined(Box<DecoratedString>),
+    Italic(Box<DecoratedString>),
     Default(String),
 }
 
+#[allow(unused)]
 impl DecoratedString {
     fn append_to_ansi(val: &DecoratedString, s: &mut String, escape_fn: &dyn Fn(&str) -> String) -> Result<(), fmt::Error> {
         // https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
@@ -50,6 +141,21 @@ impl DecoratedString {
                 write!(s, "{}", escape_fn(&format!("\x1b[{}m", color.to_ansi())))?;
                 Self::append_to_ansi(inner, s, escape_fn)?;
                 write!(s, "{}", escape_fn("\x1b[39m"))?;
+            }
+            DecoratedString::Background(inner, color) => {
+                write!(s, "{}", escape_fn(&format!("\x1b[{}m", color.to_ansi_bg())))?;
+                Self::append_to_ansi(inner, s, escape_fn)?;
+                write!(s, "{}", escape_fn("\x1b[49m"))?;
+            }
+            DecoratedString::Underlined(inner) => {
+                write!(s, "{}", escape_fn("\x1b[4m"))?;
+                Self::append_to_ansi(inner, s, escape_fn)?;
+                write!(s, "{}", escape_fn("\x1b[24m"))?;
+            }
+            DecoratedString::Italic(inner) => {
+                write!(s, "{}", escape_fn("\x1b[3m"))?;
+                Self::append_to_ansi(inner, s, escape_fn)?;
+                write!(s, "{}", escape_fn("\x1b[23m"))?;
             }
             DecoratedString::Default(val) => {
                 write!(s, "{val}")?;
@@ -73,10 +179,96 @@ impl DecoratedString {
         DecoratedString::Colored(Box::new(self), color)
     }
 
+    fn background(self, color: Color) -> DecoratedString {
+        DecoratedString::Background(Box::new(self), color)
+    }
+
+    fn underlined(self) -> DecoratedString {
+        DecoratedString::Underlined(Box::new(self))
+    }
+
+    fn italic(self) -> DecoratedString {
+        DecoratedString::Italic(Box::new(self))
+    }
+
     fn new(s: String) -> DecoratedString {
         DecoratedString::Default(s)
     }
 }
+
+// #[allow(unused)]
+// #[derive(Debug)]
+// enum Color {
+//     Red,
+//     Green,
+//     Yellow,
+//     Blue,
+//     Magenta,
+//     Cyan,
+//     White,
+// }
+
+// impl Color {
+//     fn to_ansi(&self) -> i32 {
+//         match self {
+//             Color::Red => 31,
+//             Color::Green => 32,
+//             Color::Yellow => 33,
+//             Color::Blue => 34,
+//             Color::Magenta => 35,
+//             Color::Cyan => 36,
+//             Color::White => 37,
+//         }
+//     }
+// }
+
+// #[derive(Debug)]
+// enum DecoratedString {
+//     Bold(Box<DecoratedString>),
+//     Colored(Box<DecoratedString>, Color),
+//     Default(String),
+// }
+
+// impl DecoratedString {
+//     fn append_to_ansi(val: &DecoratedString, s: &mut String, escape_fn: &dyn Fn(&str) -> String) -> Result<(), fmt::Error> {
+//         // https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
+//         match val {
+//             DecoratedString::Bold(inner) => {
+//                 write!(s, "{}", escape_fn("\x1b[1m"))?;
+//                 Self::append_to_ansi(inner, s, escape_fn)?;
+//                 write!(s, "{}", escape_fn("\x1b[22m"))?;
+//             }
+//             DecoratedString::Colored(inner, color) => {
+//                 write!(s, "{}", escape_fn(&format!("\x1b[{}m", color.to_ansi())))?;
+//                 Self::append_to_ansi(inner, s, escape_fn)?;
+//                 write!(s, "{}", escape_fn("\x1b[39m"))?;
+//             }
+//             DecoratedString::Default(val) => {
+//                 write!(s, "{val}")?;
+//             }
+//         }
+
+//         Ok(())
+//     }
+
+//     fn to_ansi(&self, escape_fn: &dyn Fn(&str) -> String) -> String {
+//         let mut ret = String::new();
+//         Self::append_to_ansi(self, &mut ret, escape_fn).unwrap();
+//         ret
+//     }
+
+//     fn bold(self) -> DecoratedString {
+//         DecoratedString::Bold(Box::new(self))
+//     }
+
+//     fn colored(self, color: Color) -> DecoratedString {
+//         DecoratedString::Colored(Box::new(self), color)
+//     }
+
+//     fn new(s: String) -> DecoratedString {
+//         DecoratedString::Default(s)
+//     }
+// }
 
 fn get_cwd() -> DecoratedString {
     let cwd = env::var("PWD");
@@ -158,7 +350,7 @@ fn get_nix_shell() -> Result<DecoratedString, NotInNixShell> {
 
     Ok(DecoratedString::new(format!("(nix: {})", name))
         .bold()
-        .colored(Color::Red))
+        .colored(Color::Hex("#61AFF0".to_string())))
 }
 
 #[derive(Debug)]
@@ -259,14 +451,14 @@ fn get_git_info() -> Result<DecoratedString, GitError> {
                 ""
             };
 
-            format!("{ref_name} {short_hash}{extension}")
+            format!("({ref_name} {short_hash}{extension})")
         }
         None => head_content[..14].to_string(),
     };
 
     Ok(DecoratedString::new(output)
-        .colored(Color::Red)
-        .bold())
+        .bold()
+        .colored(Color::Hex("#FF9249".to_string())))
 }
 
 #[derive(Debug)]
@@ -350,7 +542,7 @@ fn main() {
         .into_iter()
         .map(|s| format!("{} ", s.to_ansi(&escape_ansi)))
         .collect::<Vec<_>>()
-        .join("-");
+        .join("");
 
     print!(" {joined}-> ");
 }
