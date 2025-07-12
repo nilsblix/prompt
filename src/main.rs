@@ -161,8 +161,111 @@ fn get_nix_shell() -> Result<DecoratedString, NotInNixShell> {
 }
 
 #[derive(Debug)]
+enum GitError {
+    NoCwd(std::io::Error),
+    CanonicalCwd(std::io::Error),
+    ReadGitFile(std::io::Error),
+    ReadHead(std::io::Error),
+    NotGitRepo,
+    UnexpectedGitContent,
+    ReadRef(std::io::Error),
+    NoRefName,
+}
+
+impl fmt::Display for GitError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            GitError::NoCwd(_) => write!(f, "failed to get cwd"),
+            GitError::CanonicalCwd(_) => write!(f, "failed to canonicalize cwd"),
+            GitError::ReadGitFile(_) => write!(f, "failed to read .git file"),
+            GitError::ReadHead(_) => write!(f, "failed to read git HEAD"),
+            GitError::NotGitRepo => write!(f, "not a git repo"),
+            GitError::UnexpectedGitContent => write!(f, "unexpected git content"),
+            GitError::ReadRef(_) => write!(f, "failed to read ref"),
+            GitError::NoRefName => write!(f, "failed to get ref name"),
+        }
+    }
+}
+
+impl Error for GitError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            GitError::NoCwd(e) => Some(e),
+            GitError::CanonicalCwd(e) => Some(e),
+            GitError::ReadGitFile(e) => Some(e),
+            GitError::ReadHead(e) => Some(e),
+            GitError::NotGitRepo => None,
+            GitError::UnexpectedGitContent => None,
+            GitError::ReadRef(e) => Some(e),
+            GitError::NoRefName => None,
+        }
+    }
+}
+
+fn get_git_info() -> Result<DecoratedString, GitError> {
+    use std::{
+        fs,
+        path::*,
+    };
+
+    let cwd = env::current_dir().map_err(GitError::NoCwd)?;
+    let canonical_cwd = fs::canonicalize(cwd).map_err(GitError::CanonicalCwd)?;
+
+    let mut dir_iter = Some(&canonical_cwd as &Path);
+    while let Some(dir) = dir_iter {
+        if dir.join(".git").exists() {
+            break;
+        }
+
+        dir_iter = dir.parent();
+    }
+
+    let repo = dir_iter.ok_or(GitError::NotGitRepo)?;
+
+    // if .git has gitdir:.... we have to follow the link
+
+    let mut git_dir = repo.join(".git");
+    if git_dir.is_file() {
+        let git_content = fs::read_to_string(git_dir).map_err(GitError::ReadGitFile)?;
+
+        const PREFIX: &str = "gitdir: ";
+
+        match git_content.strip_prefix(PREFIX) {
+            Some(v) => git_dir = v.trim().into(),
+            None => return Err(GitError::UnexpectedGitContent),
+        }
+    }
+
+    let head_content = fs::read_to_string(git_dir.join("HEAD")).map_err(GitError::ReadHead)?;
+
+    const REF_PREFIX: &str = "ref: ";
+    let output = match head_content.strip_prefix(REF_PREFIX) {
+        Some(refs_path) => {
+            let refs_path = Path::new(refs_path.trim());
+
+            let commit_hash =
+                fs::read_to_string(git_dir.join(refs_path)).map_err(GitError::ReadRef)?;
+
+            let short_hash = &commit_hash[..14];
+            let ref_name = refs_path
+                .file_name()
+                .ok_or(GitError::NoRefName)?
+                .to_string_lossy();
+
+            format!("{ref_name} {short_hash}")
+        }
+        None => head_content[..14].to_string(),
+    };
+
+    Ok(DecoratedString::new(output)
+        .colored(Color::Green)
+        .bold())
+}
+
+#[derive(Debug)]
 enum MainError {
     NixShell(NotInNixShell),
+    Git(GitError),
 }
 
 impl fmt::Display for MainError {
@@ -170,6 +273,10 @@ impl fmt::Display for MainError {
         let source: &dyn std::error::Error = match self {
             MainError::NixShell(e) => {
                 writeln!(f, "failed to get nix info")?;
+                e
+            },
+            MainError::Git(e) => {
+                writeln!(f, "failed to get git info")?;
                 e
             },
         };
@@ -215,6 +322,7 @@ fn main() {
 
     let (oks, errors): (Vec<Result<_, MainError>>, Vec<_>) = vec![
         Ok(get_cwd()),
+        get_git_info().map_err(MainError::Git),
         get_nix_shell().map_err(MainError::NixShell),
     ]
     .into_iter()
