@@ -97,7 +97,7 @@ fn get_cwd() -> DecoratedString {
 
     DecoratedString::new(cwd)
         .bold()
-        .colored(Color::Blue)
+        .colored(Color::White)
 }
 
 #[derive(Debug)]
@@ -156,9 +156,9 @@ fn get_nix_shell() -> Result<DecoratedString, NotInNixShell> {
         Unknown => "unknown",
     };
 
-    Ok(DecoratedString::new(format!("nix: {}", name))
+    Ok(DecoratedString::new(format!("(nix: {})", name))
         .bold()
-        .colored(Color::White))
+        .colored(Color::Red))
 }
 
 #[derive(Debug)]
@@ -265,7 +265,7 @@ fn get_git_info() -> Result<DecoratedString, GitError> {
     };
 
     Ok(DecoratedString::new(output)
-        .colored(Color::Green)
+        .colored(Color::Red)
         .bold())
 }
 
@@ -348,9 +348,9 @@ fn main() {
 
     let joined = components
         .into_iter()
-        .map(|s| format!("[{}]", s.to_ansi(&escape_ansi)))
+        .map(|s| format!("{} ", s.to_ansi(&escape_ansi)))
         .collect::<Vec<_>>()
         .join("-");
 
-    print!("{joined} :> ");
+    print!(" {joined}-> ");
 }
