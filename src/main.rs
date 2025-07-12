@@ -287,7 +287,18 @@ fn get_cwd() -> DecoratedString {
         }
     }
 
-    DecoratedString::new(cwd)
+    let parts: Vec<&str> = cwd.split("/").collect();
+    let last = parts.last().copied().unwrap_or("");
+
+    let shortened_cwd = parts.iter().map(|&dir| {
+        if dir != last && !dir.is_empty() && dir != "~" {
+            dir.chars().next().unwrap_or('?').to_string()
+        } else {
+            dir.to_string()
+        }
+    }).collect::<Vec<String>>().join("/");
+
+    DecoratedString::new(shortened_cwd)
         .bold()
         .colored(Color::White)
 }
@@ -350,7 +361,9 @@ fn get_nix_shell() -> Result<DecoratedString, NotInNixShell> {
 
     Ok(DecoratedString::new(format!("(nix: {})", name))
         .bold()
-        .colored(Color::Hex("#61AFF0".to_string())))
+        .colored(Color::Hex("#E06C76".to_string())))
+        // Or this blue #61AFF0
+        // Or this red? #F14E32
 }
 
 #[derive(Debug)]
@@ -458,7 +471,8 @@ fn get_git_info() -> Result<DecoratedString, GitError> {
 
     Ok(DecoratedString::new(output)
         .bold()
-        .colored(Color::Hex("#FF9249".to_string())))
+        .colored(Color::Hex("#98BFAE".to_string())))
+        // Or this pink #FFAFD2
 }
 
 #[derive(Debug)]
