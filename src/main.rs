@@ -246,13 +246,19 @@ fn get_git_info() -> Result<DecoratedString, GitError> {
             let commit_hash =
                 fs::read_to_string(git_dir.join(refs_path)).map_err(GitError::ReadRef)?;
 
-            let short_hash = &commit_hash[..14];
+            let short_hash = &commit_hash[..5];
             let ref_name = refs_path
                 .file_name()
                 .ok_or(GitError::NoRefName)?
                 .to_string_lossy();
 
-            format!("{ref_name} {short_hash}")
+            let extension = if commit_hash.chars().count() > 5 {
+                "..."
+            } else {
+                ""
+            };
+
+            format!("{ref_name} {short_hash}{extension}")
         }
         None => head_content[..14].to_string(),
     };
