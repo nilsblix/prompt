@@ -253,7 +253,7 @@ fn get_git_info() -> Result<DecoratedString, GitError> {
                 .to_string_lossy();
 
             let extension = if commit_hash.chars().count() > 5 {
-                "..."
+                ".."
             } else {
                 ""
             };
