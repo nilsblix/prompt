@@ -157,7 +157,8 @@ fn get_nix_shell() -> Result<DecoratedString, NotInNixShell> {
     };
 
     Ok(DecoratedString::new(format!("nix: {}", name))
-        .bold())
+        .bold()
+        .colored(Color::White))
 }
 
 #[derive(Debug)]
