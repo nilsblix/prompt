@@ -225,7 +225,7 @@ fn get_cwd() -> DecoratedString {
     }).collect::<Vec<String>>().join("/");
 
     DecoratedString::new(shortened_cwd)
-        // .bold()
+        .bold()
         .colored(Color::White)
 }
 
@@ -396,7 +396,7 @@ fn get_git_info() -> Result<DecoratedString, GitError> {
     };
 
     Ok(DecoratedString::new(output)
-        // .bold()
+        .bold()
         .colored(Color::Hex("#98BFAE".to_string())))
         // Or this pink #FFAFD2
 }
