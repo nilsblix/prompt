@@ -14,7 +14,7 @@
                 devShells.default = pkgs.mkShell {
                     packages = with pkgs; [
                         rustup
-                        rust-analyzer
+                        # rust-analyzer
                         # cargo rustc rust-analyzer
                     ];
                 };
