@@ -226,7 +226,8 @@ fn get_cwd() -> DecoratedString {
 
     DecoratedString::new(shortened_cwd)
         .bold()
-        .colored(Color::White)
+        .colored(Color::Hex("#D0D0FB".to_string()))
+        // .colored(Color::White)
 }
 
 #[derive(Debug)]
@@ -287,9 +288,8 @@ fn get_nix_shell() -> Result<DecoratedString, NotInNixShell> {
 
     Ok(DecoratedString::new(format!("(nix: {})", name))
         .bold()
-        .colored(Color::Hex("#E06C76".to_string())))
-        // Or this blue #61AFF0
-        // Or this red? #F14E32
+        .colored(Color::Hex("#005ED3".to_string())))
+        // .colored(Color::Hex("#E06C76".to_string())))
 }
 
 #[derive(Debug)]
@@ -397,8 +397,8 @@ fn get_git_info() -> Result<DecoratedString, GitError> {
 
     Ok(DecoratedString::new(output)
         .bold()
-        .colored(Color::Hex("#98BFAE".to_string())))
-        // Or this pink #FFAFD2
+        .colored(Color::Hex("#A4D3FA".to_string())))
+        // .colored(Color::Hex("#98BFAE".to_string())))
 }
 
 #[derive(Debug)]
@@ -447,7 +447,7 @@ fn main() {
     // PROMPT="$(PROMPT_SHELL_TYPE='zsh' ./path/to/prompt/binary)"
     // ```
 
-    let shell_type = env::var("PROMPT_SHELL_TYPE").expect("Prompt shell type is unspecified");
+    let shell_type = env::var("PROMPT_SHELL_TYPE").unwrap_or("bash".to_string());
 
     let escape_ansi = |s: &str| -> String {
         if shell_type == "zsh" {
@@ -484,5 +484,6 @@ fn main() {
         .collect::<Vec<_>>()
         .join("");
 
-    print!("{joined}-> ");
+    print!("{joined}λ ");
+    // print!("{joined}-> ");
 }
