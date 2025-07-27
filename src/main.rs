@@ -484,6 +484,6 @@ fn main() {
         .collect::<Vec<_>>()
         .join("");
 
-    print!("{joined}λ ");
-    // print!("{joined}-> ");
+    // print!("{joined}λ ");
+    print!("{joined}-> ");
 }
