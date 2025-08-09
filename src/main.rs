@@ -214,20 +214,23 @@ fn get_cwd() -> DecoratedString {
     }
 
     let parts: Vec<&str> = cwd.split("/").collect();
-    let last = parts.last().copied().unwrap_or("");
 
-    let shortened_cwd = parts.iter().map(|&dir| {
-        if dir != last && !dir.is_empty() && dir != "~" {
-            dir.chars().next().unwrap_or('?').to_string()
-        } else {
-            dir.to_string()
-        }
-    }).collect::<Vec<String>>().join("/");
+    // NOTE: Use this to obtain a single character per parent dir.
+    // let last = parts.last().copied().unwrap_or("");
+    //
+    // let shortened_cwd = parts.iter().map(|&dir| {
+    //     if dir != last && !dir.is_empty() && dir != "~" {
+    //         dir.chars().next().unwrap_or('?').to_string()
+    //     } else {
+    //         dir.to_string()
+    //     }
+    // }).collect::<Vec<String>>().join("/");
+
+    let shortened_cwd = parts.last().copied().unwrap_or("").to_string();
 
     DecoratedString::new(shortened_cwd)
         .bold()
         .colored(Color::Hex("#D0D0FB".to_string()))
-        // .colored(Color::White)
 }
 
 #[derive(Debug)]
@@ -484,6 +487,9 @@ fn main() {
         .collect::<Vec<_>>()
         .join("");
 
-    // print!("{joined}λ ");
-    print!("{joined}-> ");
+    let arrow = DecoratedString::new("->".to_string())
+        .colored(Color::Hex("#E96E57".to_string()))
+        .to_ansi(&escape_ansi);
+
+    print!(" {joined}{arrow} ");
 }
